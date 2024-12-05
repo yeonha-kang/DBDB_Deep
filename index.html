@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세종시 노인보호구역 분석</title>
+
+    <!-- Required Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="layout-container">
+        <div class="sidebar-trigger"></div>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">세종시 노인보호구역</h2>
+            </div>
+            <nav>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#top" class="nav-link active">
+                            <i data-lucide="home" class="nav-icon"></i>
+                            대시보드
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#stats" class="nav-link">
+                            <i data-lucide="bar-chart-2" class="nav-icon"></i>
+                            통계 현황
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#map-section" class="nav-link">
+                            <i data-lucide="map" class="nav-icon"></i>
+                            보호구역 지도
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#project" class="nav-link">
+                            <i data-lucide="clipboard" class="nav-icon"></i>
+                            프로젝트 개요
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header id="top" class="header">
+                <h1>세종시 노인보호구역</h1>
+                <p class="lead">노인의 안전한 보행을 위한 최적지 선정</p>
+            </header>
+            <div class="content-wrapper">
+                <div id="stats" class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <i data-lucide="users" class="stat-icon"></i>
+                            <div>
+                                <p class="stat-label">노인 인구</p>
+                                <p class="stat-value">45,043명</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <i data-lucide="map-pin" class="stat-icon"></i>
+                            <div>
+                                <p class="stat-label">보호구역 수</p>
+                                <p class="stat-value">9개</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="charts" class="charts-grid">
+                    <div class="chart-card">
+                        <h2 class="chart-title">노인 인구 추이</h2>
+                        <canvas id="populationChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2 class="chart-title">교통사고 추이</h2>
+                        <canvas id="accidentChart"></canvas>
+                    </div>
+                </div>
+                <div id="map-section" class="map-card">
+                    <h2 class="chart-title">노인보호구역 지도</h2>
+                    <div id="map"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
