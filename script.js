@@ -29,6 +29,8 @@ document.querySelectorAll('.nav-link').forEach(link => {
 
 // 인구 추이 차트
 const populationCtx = document.getElementById('populationChart').getContext('2d');
+const accidentCtx = document.getElementById('accidentChart').getContext('2d');
+
 new Chart(populationCtx, {
     type: 'line',
     data: {
@@ -50,7 +52,6 @@ new Chart(populationCtx, {
 });
 
 // 교통사고 추이 차트
-const accidentCtx = document.getElementById('accidentChart').getContext('2d');
 new Chart(accidentCtx, {
     type: 'line',
     data: {
