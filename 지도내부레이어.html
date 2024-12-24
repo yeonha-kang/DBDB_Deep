@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>세종시 노인보호구역</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+    }
+    #map {
+      height: calc(100vh - 150px);
+      margin-bottom: 20px;
+    }
+    .zone-card {
+      margin-bottom: 20px;
+      transition: background-color 0.5s, border 0.5s;
+    }
+    .zone-card.highlight {
+      border: 2px solid blue;
+      background-color: #f0f8ff;
+    }
+    body.dark-mode {
+      background-color: #121212;
+      color: #f0f0f0;
+    }
+    body.dark-mode .card {
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+    }
+    @media (max-width: 768px) {
+      #map {
+        height: 300px;
+      }
+      .zone-card {
+        margin-bottom: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <header class="mb-4 text-center">
+      <h1 class="text-primary">세종시 노인보호구역 현황</h1>
+      <p>현재 보호구역으로 지정된 곳</p>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" id="search" placeholder="검색 예: 밀마루복지마을">
+        <button class="btn btn-primary" id="search-btn">검색</button>
+        <button class="btn btn-dark" id="toggle-dark-mode">다크 모드</button>
+      </div>
+    </header>
+
+    <div id="map"></div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4" id="zone-list">
+      <!-- 카드 레이아웃으로 보호구역 표시 -->
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // 지도 초기화
+    const map = L.map('map').setView([36.50972725, 127.2591418], 12);
+
+    // 라이트 모드 타일
+    const lightTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    // 다크 모드 타일
+    const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    });
+
+    // 세종시 경계선 표시
+    fetch('행정동_ver20230701.geojson')
+      .then(response => response.json())
+      .then(data => {
+        const boundaryLayer = L.geoJSON(data, {
+          style: {
+            color: 'gray',
+            weight: 2,
+            opacity: 0.8
+          }
+        }).addTo(map);
+        map.fitBounds(boundaryLayer.getBounds());
+      })
+      .catch(error => console.error('GeoJSON 데이터를 불러오는 중 오류:', error))
+    
+
+    // 첫 번째 검색 버튼 커스텀 컨트롤 생성
+const SearchButtonControl = L.Control.extend({
+  options: {
+    position: 'topright', // 버튼 위치 (우측 상단)
+  },
+  onAdd: function () {
+    // 버튼 생성
+    const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.innerHTML = '<i class="bi bi-search"></i>'; // 아이콘 (Bootstrap 사용)
+    container.title = "새로운 창에서 검색";
+    container.style.backgroundColor = 'white';
+    container.style.width = '40px';
+    container.style.height = '40px';
+    container.style.cursor = 'pointer';
+
+    // 버튼 클릭 이벤트 추가
+    container.onclick = function () {
+      const searchURL = '/search'; // 검색 결과 페이지 URL
+      window.open(searchURL, 'search.html'); // 새 창 열기
+    };
+
+    return container;
+  },
+});
+
+// 두 번째 검색 버튼 커스텀 컨트롤 생성
+const SearchButtonControl2 = L.Control.extend({
+  options: {
+    position: 'topleft', // 버튼 위치 (좌측 상단)
+  },
+  onAdd: function () {
+    // 버튼 생성
+    const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.innerHTML = '<i class="bi bi-camera"></i>'; // 아이콘 (Bootstrap 사용)
+    container.title = "다른 창에서 검색";
+    container.style.backgroundColor = 'white';
+    container.style.width = '40px';
+    container.style.height = '40px';
+    container.style.cursor = 'pointer';
+
+    // 버튼 클릭 이벤트 추가
+    container.onclick = function () {
+      const searchURL = '/milmaroo_roadview'; // 검색 결과 페이지 URL
+      window.open(searchURL, 'milmaroo_roadview.html'); // 새 창 열기
+    };
+
+    return container;
+  },
+});
+
+// 첫 번째 버튼 추가
+const searchButton = new SearchButtonControl();
+map.addControl(searchButton);
+
+// 두 번째 버튼 추가
+const searchButton2 = new SearchButtonControl2();
+map.addControl(searchButton2);
+
+
+    // 추가 버튼 컨트롤 생성
+    const CustomButtonControl = L.Control.extend({
+      options: {
+        position: 'topright', // 버튼 위치
+      },
+      initialize: function (text, color, callback) {
+        this.text = text;
+        this.color = color;
+        this.callback = callback;
+      },
+      onAdd: function () {
+        // 버튼 생성
+        const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.innerHTML = this.text;
+        container.style.backgroundColor = this.color;
+        container.style.border = 'none';
+        container.style.width = '40px';
+        container.style.height = '40px';
+        container.style.cursor = 'pointer';
+
+        // 버튼 클릭 이벤트 추가
+        L.DomEvent.on(container, 'click', this.callback);
+
+        return container;
+      },
+    });
+
+    // 버튼 동작 정의
+    const actions = [
+      {
+        text: '<i class="bi bi-info-circle"></i>',
+        color: 'lightblue',
+        callback: () => alert('노인보호구역 정보를 확인하세요.'),
+      },
+      {
+        text: '<i class="bi bi-map"></i>',
+        color: 'lightgreen',
+        callback: () => map.setView([36.50972725, 127.2591418], 13),
+      },
+      {
+        text: '<i class="bi bi-geo-alt"></i>',
+        color: 'lightpink',
+        callback: () => map.locate({ setView: true, maxZoom: 15 }),
+      },
+      {
+        text: '<i class="bi bi-layers"></i>',
+        color: 'lightyellow',
+        callback: () => alert('지도 레이어를 선택하세요.'),
+      },
+      {
+        text: '<i class="bi bi-camera"></i>',
+        color: 'violet',
+        callback: () => alert('즐겨찾기를 추가하세요.'),
+      },
+      {
+        text: '<i class="bi bi-star"></i>',
+        color: 'lightpurple',
+        callback: () => alert('즐겨찾기를 추가하세요.'),
+      }
+    ];
+
+    // 버튼 추가
+    actions.forEach(action => {
+      map.addControl(new CustomButtonControl(action.text, action.color, action.callback));
+    });
+
+    // 기존 보호구역 데이터 및 검색, 다크모드, 마커 추가 로직은 그대로 유지
+  </script>
+</body>
+</html>

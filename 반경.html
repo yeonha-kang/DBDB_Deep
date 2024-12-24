@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>위도 및 경도 표시</title>
+    <style>
+        .info {
+            position: relative;
+            top: 5px;
+            left: 5px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            border-bottom: 2px solid #ddd;
+            font-size: 12px;
+            padding: 5px;
+            background: #fff;
+            list-style: none;
+            margin: 0;
+        }
+        .info:nth-of-type(n) {
+            border: 0;
+            box-shadow: 0px 1px 2px #888;
+        }
+        .info .label {
+            display: inline-block;
+            width: 150px;
+        }
+        .number {
+            font-weight: bold;
+            color: #00a0e9;
+        }
+    </style>
+</head>
+<body>
+<div id="map" style="width:100%;height:600px;"></div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a9c49f4393b0d71166c3ddb8e129041a"></script>
+<script>
+    var mapContainer = document.getElementById('map'),
+        mapOption = {
+            center: new kakao.maps.LatLng(36.5, 127.3), // 대략적인 중심 좌표
+            level: 9
+        };
+
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+
+    // 세종시 경계 GeoJSON 파일 경로
+    var geoJsonUrl = '행정동_ver20230701.geojson';
+
+    // GeoJSON 파일 로드
+    fetch(geoJsonUrl)
+        .then(response => response.json())
+        .then(geoJson => {
+            displayBoundary(geoJson);
+        })
+        .catch(error => console.error('GeoJSON 파일 로드 오류:', error));
+
+    // GeoJSON 데이터로 경계 표시
+    function displayBoundary(geoJson) {
+        var styleOptions = {
+            strokeWeight: 2,
+            strokeColor: '#004c80',
+            strokeOpacity: 0.8,
+            fillColor: '#00aaff',
+            fillOpacity: 0.2
+        };
+
+        var polygon = new kakao.maps.Polygon({
+            path: geoJson.features[0].geometry.coordinates[0].map(coord => new kakao.maps.LatLng(coord[1], coord[0])),
+            strokeWeight: styleOptions.strokeWeight,
+            strokeColor: styleOptions.strokeColor,
+            strokeOpacity: styleOptions.strokeOpacity,
+            fillColor: styleOptions.fillColor,
+            fillOpacity: styleOptions.fillOpacity
+        });
+
+        polygon.setMap(map);
+    }
+
+    var locations = [
+    {lat: 36.529446, lng: 127.367022},
+    {lat: 36.555338, lng: 127.280645},
+    {lat: 36.680502, lng: 127.203596},
+    {lat: 36.563274, lng: 127.325596},
+    {lat: 36.464646, lng: 127.280006},
+    {lat: 36.533194, lng: 127.348657},
+    {lat: 36.654681, lng: 127.268557},
+    {lat: 36.721232, lng: 127.158330},
+    {lat: 36.595436, lng: 127.210528},
+    {lat: 36.440346, lng: 127.286345}
+];
+
+
+    locations.forEach(function(location) {
+        var circle300 = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(location.lat, location.lng),
+            radius: 300, // 반경 (단위: 미터)
+            strokeWeight: 2,
+            strokeColor: '#ff0000',
+            strokeOpacity: 0.8,
+            fillColor: '#ffdddd',
+            fillOpacity: 0.5
+        });
+
+        var circle500 = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(location.lat, location.lng),
+            radius: 500, // 반경 (단위: 미터)
+            strokeWeight: 2,
+            strokeColor: '#0000ff',
+            strokeOpacity: 0.8,
+            fillColor: '#ddddff',
+            fillOpacity: 0.4
+        });
+
+        circle300.setMap(map);
+        circle500.setMap(map);
+    });
+
+    var data = [
+        { lat: 36.50972725, lng: 127.2591418, name: "밀마루복지마을" },
+        { lat: 36.67989279, lng: 127.2085989, name: "전의복지회관" },
+        { lat: 36.53916873, lng: 127.1908696, name: "송학2리 노인회관" },
+        { lat: 36.60069182, lng: 127.3034413, name: "세종경로 여성복지회관" },
+        { lat: 36.59605391, lng: 127.3009235, name: "세종노인복지센터" },
+        { lat: 36.4665093, lng: 127.2820502, name: "대평시장" },
+        { lat: 36.599769, lng: 127.300644, name: "조치원전통시장" },
+        { lat: 36.496969, lng: 127.207338, name: "도계리 경로당" },
+        { lat: 36.669233, lng: 127.217044, name: "미곡1리미당 노인경로당" }
+    ];
+
+    data.forEach(function(location) {
+        var marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(location.lat, location.lng),
+            map: map
+        });
+
+        var infoWindow = new kakao.maps.InfoWindow({
+            content: `<div class="info"><span class="label">${location.name}</span></div>`
+        });
+
+        kakao.maps.event.addListener(marker, 'click', function() {
+            infoWindow.open(map, marker);
+        });
+
+        var circle300 = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(location.lat, location.lng),
+            radius: 300, // 반경 (단위: 미터)
+            strokeWeight: 2,
+            strokeColor: '#ff0000',
+            strokeOpacity: 0.8,
+            fillColor: '#ffdddd',
+            fillOpacity: 0.5
+        });
+
+        var circle500 = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(location.lat, location.lng),
+            radius: 500, // 반경 (단위: 미터)
+            strokeWeight: 2,
+            strokeColor: '#0000ff',
+            strokeOpacity: 0.8,
+            fillColor: '#ddddff',
+            fillOpacity: 0.4
+        });
+
+        circle300.setMap(map);
+        circle500.setMap(map);
+    });
+</script>
+</body>
+</html>

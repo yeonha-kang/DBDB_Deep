@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>세종시 노인보호구역</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: 100vh;
+      margin: 0;
+    }
+
+    .side-bar-wrapper {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100vh;
+      background-color: white;
+      overflow-y: auto;
+      transition: left 0.5s ease;
+      z-index: 999;
+      padding-top: 60px;
+    }
+
+    .side-bar-wrapper ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 20px 10px;
+    }
+
+    .side-bar-wrapper ul > li {
+      margin-bottom: 10px;
+    }
+
+    .side-bar-wrapper ul > li > a {
+      color: black;
+      text-decoration: none;
+      display: block;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .side-bar-wrapper ul > li > a:hover {
+      background-color: #555;
+    }
+
+    .toggle-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: rgb(160, 215, 241);
+      color: black;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .dropdown-container {
+      margin: 10px 10px 20px 10px;
+    }
+
+    .leaflet-control-custom {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="sideBar" class="side-bar-wrapper">
+    <ul>
+      <li><a href="javascript:void(0);" onclick="scrollToSection('map')">지도 보기</a></li>
+      <li><a href="#">설정</a></li>
+      <li><a href="#">도움말</a></li>
+      <li>
+        <div class="dropdown-container">
+          <div class="mb-3">
+            <label for="regionSelect" class="form-label">분석</label>
+            <select id="regionSelect" class="form-select">
+              <option value="default" selected>분석을 선택하세요</option>
+              <option value="DBSCAN">DBSCAN</option>
+              <option value="AHP">AHP</option>
+              <option value="custom-analysis">DBSCAN분석</option>
+              <option value="clustering">Clustering</option>
+            </select>
+          </div>
+          <div>
+            <label for="layerSelect" class="form-label">레이어 선택</label>
+            <select id="layerSelect" class="form-select">
+              <option value="default" selected>레이어를 선택하세요</option>
+              <option value="children-zone">어린이 보호구역</option>
+              <option value="elderly-zone">노인 보호구역</option>
+              <option value="optimal-zone">최적지 선정</option>
+            </select>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <button class="toggle-btn" id="toggleBtn">&#9776; 메뉴</button>
+  <div id="map"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script>
+    const map = L.map('map').setView([36.50972725, 127.2591418], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const sideBar = document.getElementById('sideBar');
+      const savedState = localStorage.getItem('sideBarState');
+      sideBar.style.left = savedState === 'open' ? '0px' : '-250px';
+    });
+
+    document.getElementById('toggleBtn').addEventListener('click', () => {
+      const sideBar = document.getElementById('sideBar');
+      const isOpen = sideBar.style.left === '0px';
+      sideBar.style.left = isOpen ? '-250px' : '0px';
+      localStorage.setItem('sideBarState', isOpen ? 'closed' : 'open');
+    });
+
+    const markerGroup = L.layerGroup().addTo(map);
+
+    const customIcon = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/128/15598/15598807.png',
+      iconSize: [50, 50],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    const clusterData = [
+      { lat: 36.528835, lon: 127.368141, address: "세종특별자치시 부강면 부강리 464-4" },
+      { lat: 36.464523, lon: 127.280050, address: "세종특별자치시 금남면 용포리 124" },
+      { lat: 36.680030, lon: 127.206199, address: "세종특별자치시 전의면 동교리 196-2" },
+      { lat: 36.562657, lon: 127.283087, address: "세종특별자치시 연서면 봉암리 215-7" },
+      { lat: 36.721783, lon: 127.157707, address: "세종특별자치시 소정면 소정리 49-2" }
+    ];
+
+    const ahpData = [
+      { lat: 36.544355, lon: 127.274331, address: "세종특별자치시 연기면 아사디길 20" },
+      { lat: 36.543717, lon: 127.246965, address: "세종특별자치시 연기면 외왕길 7" },
+      { lat: 36.551629, lon: 127.282836, address: "세종특별자치시 연기면 잣띠길 58-2" },
+      { lat: 36.544188, lon: 127.275737, address: "세종특별자치시 연기면 당산로 113-5" },
+      { lat: 36.544291, lon: 127.258017, address: "세종특별자치시 연기면 원왕길 8-3" }
+    ];
+
+    const buttonConfigs = [
+      { icon: 'bi bi-search', color: 'white', link: '/search.html' },
+      { icon: 'bi bi-eye', color: 'lightpink', link: '/roadview_search.html' },
+      { icon: 'bi bi-layers', color: 'lightyellow', link: '/traffic.html' },
+      { icon: 'bi bi-geo-alt', color: 'lightgreen', link: '/ltraffic.html' },
+      { icon: 'bi bi-map', color: 'skyblue', link: '/traffic.html' },
+    ];
+
+    const CustomButtonControl = L.Control.extend({
+      options: { position: 'topright' },
+      initialize: function (icon, color, link) {
+        this.icon = icon;
+        this.color = color;
+        this.link = link;
+      },
+      onAdd: function () {
+        const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.innerHTML = `<i class="${this.icon}"></i>`;
+        container.style.backgroundColor = this.color;
+        container.style.width = '40px';
+        container.style.height = '40px';
+        container.style.cursor = 'pointer';
+        container.onclick = () => {
+          window.open(this.link, '_blank');
+        };
+        return container;
+      },
+    });
+
+    buttonConfigs.forEach(config => {
+      map.addControl(new CustomButtonControl(config.icon, config.color, config.link));
+    });
+
+    document.getElementById("regionSelect").addEventListener("change", function () {
+      const value = this.value;
+      markerGroup.clearLayers();
+
+      if (value === "DBSCAN") {
+        clusterData.forEach(location => {
+          const marker = L.marker([location.lat, location.lon], { icon: customIcon }).addTo(markerGroup);
+          marker.bindPopup(`<b>주소:</b> ${location.address}`).openPopup();
+        });
+      } else if (value === "AHP") {
+        ahpData.forEach(location => {
+          const marker = L.marker([location.lat, location.lon], { icon: customIcon }).addTo(markerGroup);
+          marker.bindPopup(`<b>주소:</b> ${location.address}`).openPopup();
+        });
+      } else if (value === "custom-analysis") {
+        window.open('/dbscan.html', '_blank');
+      } else if (value === "clustering") {
+        window.open('/clustering.html', '_blank');
+      } else if (value === "default") {
+        alert("분석 옵션을 선택하세요.");
+      }
+    });
+
+    function scrollToSection(id) {
+      const section = document.getElementById(id);
+      if (section) section.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

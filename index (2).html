@@ -351,7 +351,7 @@
                     <li class="nav-item">
                         <a href="#top" class="nav-link active">
                             <i data-lucide="home" class="nav-icon"></i>
-                            HOME
+                            대시보드
                         </a>
                     </li>
                     <li class="nav-item">
@@ -363,7 +363,7 @@
                     <li class="nav-item">
                         <a href="#map-section" class="nav-link">
                             <i data-lucide="navigation" class="nav-icon"></i>
-                             현재 노인보호구역
+                             최적지 선정
                         </a>
                     </li>
                     <li class="nav-item">
@@ -373,15 +373,15 @@
                         </a>
                     </li>
                     <li class="nav-item"> 
-                        <a href="page.html" class="nav-link">
+                        <a href="/page" class="nav-link">
                             <i data-lucide="map" class="nav-icon"></i>
-                            최적지
+                            지도보기
                         </a>
                     </li>
                     <li class="nav-item"> 
-                        <a href="search.html" class="nav-link">
-                            <i data-lucide="search" class="nav-icon"></i>
-                            검색
+                        <a href="/page" class="nav-link">
+                            <i data-lucide="chart-no-axes-combined" class="nav-icon"></i>
+                            분석
                         </a>
                     </li>
                 </ul>
@@ -391,7 +391,7 @@
                 <h3 class="summary-title">프로젝트 현황</h3>
                 <div class="summary-stat">
                     <i data-lucide="calendar" class="summary-icon"></i>
-                    <p class="summary-label">마지막 업데이트: 2024.12.12</p>
+                    <p class="summary-label">마지막 업데이트: 2024.12.04</p>
                 </div>
                 <div class="summary-stat">
                     <i data-lucide="check-circle" class="summary-icon"></i>
@@ -449,6 +449,7 @@
                         </div>
                     </div>
                 </div>
+                
                 <div id="charts" class="charts-grid">
                     <div class="chart-card">
                         <h2 class="chart-title">노인 인구 추이</h2>
@@ -499,14 +500,14 @@
         // Lucide 아이콘 초기화
         lucide.createIcons();
 
-        // 네비게이션 링크 이벤트 처리
-        document.querySelectorAll('.nav-link').forEach(link => {
+         // 네비게이션 링크 이벤트 처리
+         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 const href = e.target.closest('.nav-link').getAttribute('href');
                 
                 if (!href.startsWith('#')) {
                     e.preventDefault();
-                    window.location.href = href; // 수정된 부분: 같은 탭에서 열기
+                    window.open(href, '_blank'); // 새 탭에서 열기
                 }
             });
         });    
@@ -514,74 +515,28 @@
         // 네비게이션 링크 클릭 이벤트 핸들러
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
-                if (e.target.closest('.nav-link').getAttribute('href').startsWith('#')) {
-                    e.preventDefault();
-                    
-                    // active 클래스 업데이트
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    e.target.closest('.nav-link').classList.add('active');
-                    
-                    // 타겟 섹션으로 스크롤
-                    const targetId = e.target.closest('.nav-link').getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    
-                    if (targetElement) {
-                        const headerOffset = 20;
-                        const elementPosition = targetElement.getBoundingClientRect().top;
-                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                e.preventDefault();
+                
+                // active 클래스 업데이트
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                e.target.closest('.nav-link').classList.add('active');
+                
+                // 타겟 섹션으로 스크롤
+                const targetId = e.target.closest('.nav-link').getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    const headerOffset = 20;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-                        window.scrollTo({
-                            top: offsetPosition,
-                            behavior: "smooth"
-                        });
-                    }
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
                 }
             });
         });
-
-        // zones 데이터 정의
-        const zones = [
-            { 
-                name: "Zone 1", 
-                lat: 36.528872, 
-                lon: 127.367796,
-                address: "세종시 고운동", 
-                population: 1200, 
-                accidents: 3 
-            },
-            { 
-                name: "Zone 2", 
-                lat: 36.464646, 
-                lon: 127.280006,
-                address: "세종시 아름동", 
-                population: 800, 
-                accidents: 5 
-            },
-            { 
-                name: "Zone 3", 
-                lat: 36.679749, 
-                lon: 127.205951,
-                address: "세종시 반곡동", 
-                population: 950, 
-                accidents: 2 
-            },
-            { 
-                name: "Zone 4", 
-                lat: 36.562973, 
-                lon: 127.283338,
-                address: "세종시 도담동", 
-                population: 1100, 
-                accidents: 4 
-            },
-            { 
-                name: "Zone 5", 
-                lat: 36.722422, 
-                lon: 127.157880,
-                address: "세종시 소담동", 
-                population: 650, 
-                accidents: 1 
-            }
-        ];
 
         // 인구 추이 차트
         const populationCtx = document.getElementById('populationChart').getContext('2d');
@@ -634,17 +589,14 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        // 보호구역 데이터
+        kjm7ZU
         // 지도에 보호구역 표시
         zones.forEach(zone => {
             // 마커 추가
             L.marker([zone.lat, zone.lon])
                 .addTo(map)
-                .bindPopup(`
-                    <b>${zone.name}</b><br>
-                    주소: ${zone.address}<br>
-                    노인 인구: ${zone.population}명<br>
-                    사고 건수: ${zone.accidents}건
-                `);
+                .bindPopup(`<b>${zone.name}</b>`);
             
             // 보호구역 원 추가
             L.circle([zone.lat, zone.lon], {

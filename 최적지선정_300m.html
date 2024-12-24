@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>마커 및 원 추가</title>
+</head>
+<body>
+<div id="map" style="width:100%;height:800px;"></div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a9c49f4393b0d71166c3ddb8e129041a"></script>
+<script>
+// 지도 생성
+var mapContainer = document.getElementById('map'),
+    mapOption = { 
+        center: new kakao.maps.LatLng(36.558894, 127.303323), // 첫 번째 마커의 위치를 중심으로 설정
+        level: 8 // 지도의 확대 레벨
+    };
+
+var map = new kakao.maps.Map(mapContainer, mapOption); 
+
+// 데이터 배열 (위도, 경도)
+var locations = [
+    {lat: 36.528872, lng: 127.367796},
+    {lat: 36.464646, lng: 127.280006},
+    {lat: 36.679749, lng: 127.205951},
+    {lat: 36.562973, lng: 127.283338},
+    {lat: 36.722422, lng: 127.157880}
+];
+// 마커 및 원 추가
+locations.forEach(function(location) {
+    // 마커 생성
+    var marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(location.lat, location.lng)
+    });
+
+    // 마커 지도에 표시
+    marker.setMap(map);
+
+    // 반경 300m 원 생성
+    var circle = new kakao.maps.Circle({
+        center: new kakao.maps.LatLng(location.lat, location.lng), // 원의 중심
+        radius: 300, // 미터 단위의 반경
+        strokeWeight: 2, // 선의 두께
+        strokeColor: '#FF00FF', // 선의 색깔
+        strokeOpacity: 0.8, // 선의 투명도
+        fillColor: '#FFCCCC', // 채우기 색깔
+        fillOpacity: 0.5  // 채우기 투명도
+    });
+
+    // 원 지도에 표시
+    circle.setMap(map);
+});
+</script>
+</body>
+</html>

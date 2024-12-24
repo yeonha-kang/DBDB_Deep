@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>세종시 노인보호구역</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --side-bar-width: 250px;
+      --side-bar-height: 100vh;
+    }
+
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.5s, color 0.5s;
+    }
+
+    #map {
+      height: 600px;
+      margin-bottom: 20px;
+      border: 5px solid black;
+    }
+
+    body.dark-mode {
+      background-color: #121212;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode #map {
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+    }
+
+    header {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    h1, h5 {
+      margin: 0;
+    }
+
+    #login-container {
+      display: none;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+
+    #login-message {
+      color: red;
+      font-size: 0.9rem;
+    }
+
+    .zone-card {
+      margin-bottom: 20px;
+      transition: box-shadow 0.5s, border 0.5s;
+    }
+
+    .zone-card.highlight {
+      border: 2px solid blue;
+      box-shadow: 0 0 15px rgba(0, 0, 255, 0.5);
+      transform: scale(1.05);
+    }
+
+    body.dark-mode .card {
+      background-color: #2e2e2e;
+      color: #ffffff;
+      border: 1px solid #444;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.8);
+    }
+
+    body.dark-mode .card h5 {
+      color: #f9a826;
+    }
+
+    body.dark-mode .card p {
+      color: #cccccc;
+    }
+
+    body.dark-mode .zone-card.highlight {
+      background-color: #3a3a3a;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    }
+
+    .side-bar-wrapper {
+      position: fixed;
+      top: 60px;
+      left: -250px;
+      width: var(--side-bar-width);
+      height: var(--side-bar-height);
+      background-color: black;
+      overflow-y: auto;
+      transition: left 0.5s ease, background-color 0.5s ease;
+      z-index: 999;
+    }
+
+    .side-bar-wrapper ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 20px 10px;
+    }
+
+    .side-bar-wrapper ul > li {
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .side-bar-wrapper ul > li > a {
+      color: white;
+      font-size: 1.2rem;
+      text-decoration: none;
+      padding: 15px;
+      display: block;
+      border-radius: 8px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .side-bar-wrapper ul > li > a:hover {
+      background-color: #555;
+      color: #f9a826;
+    }
+
+    .toggle-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: black;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .leaflet-marker-icon.glow-marker {
+      filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.8));
+    }
+  </style>
+</head>
+<body>
+
+  
+  <!-- 사이드바 -->
+  <div id="sideBar" class="side-bar-wrapper">
+    <ul>
+      <li><a href="#" onclick="scrollToSection('map')">지도 보기</a></li>
+      <li><a href="#" onclick="scrollToSection('zone-list')">보호구역 목록</a></li>
+      <li><a href="#">설정</a></li>
+      <li><a href="#">도움말</a></li>
+    </ul>
+  </div>
+
+  <!-- 토글 버튼 -->
+  <button class="toggle-btn" id="toggleBtn">&#9776; 메뉴</button>
+
+  <div class="container mt-4">
+    <header>
+      <h1 class="text-primary">세종시 노인보호구역 현황</h1>
+      <h5>노인의 안전한 보행을 위해</h5>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" id="search" placeholder="검색 예: 밀마루복지마을">
+        <button class="btn btn-primary" id="search-btn">검색</button>
+        <button class="btn btn-dark" id="toggle-dark-mode">다크 모드</button>
+        <button class="btn btn-secondary" id="login-btn">로그인</button> <!-- 로그인 버튼 추가 -->
+      </div>
+    </header>
+
+    <div id="map"></div>
+    <div class="row row-cols-1 row-cols-md-3 g-4" id="zone-list"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // 로그인 버튼 이벤트 추가
+    document.getElementById('login-btn').addEventListener('click', () => {
+    const loginURL = '/login.html'; // 로그인 페이지 경로
+    window.open(loginURL, '_blank', 'width=400,height=500'); // 새 창 열기
+    })
+    const map = L.map('map').setView([36.50972725, 127.2591418], 12);
+    const lightTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+    const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    });
+
+    let isDarkMode = false;
+
+    // 세종시 경계선 표시
+    fetch('행정동_ver20230701.geojson')
+      .then(response => response.json())
+      .then(data => {
+        const boundaryLayer = L.geoJSON(data, {
+          style: {
+            color: 'white',
+            weight: 2,
+            opacity: 0.8
+          }
+        }).addTo(map);
+        map.fitBounds(boundaryLayer.getBounds());
+      })
+      .catch(error => console.error('GeoJSON 데이터를 불러오는 중 오류:', error));
+
+
+     // 첫 번째 검색 버튼 커스텀 컨트롤 생성
+const SearchButtonControl = L.Control.extend({
+  options: {
+    position: 'topright', // 버튼 위치 (우측 상단)
+  },
+  onAdd: function () {
+    // 버튼 생성
+    const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.innerHTML = '<i class="bi bi-search"></i>'; // 아이콘 (Bootstrap 사용)
+    container.title = "새로운 창에서 검색";
+    container.style.backgroundColor = 'white';
+    container.style.width = '40px';
+    container.style.height = '40px';
+    container.style.cursor = 'pointer';
+
+    // 버튼 클릭 이벤트 추가
+    container.onclick = function () {
+      const searchURL = '/search'; // 검색 결과 페이지 URL
+      window.open(searchURL, 'search.html'); // 새 창 열기
+    };
+
+    return container;
+  },
+});
+
+// 두 번째 검색 버튼 커스텀 컨트롤 생성
+const SearchButtonControl2 = L.Control.extend({
+  options: {
+    position: 'topleft', // 버튼 위치 (좌측 상단)
+  },
+  onAdd: function () {
+    // 버튼 생성
+    const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.innerHTML = '<i class="bi bi-camera"></i>'; // 아이콘 (Bootstrap 사용)
+    container.title = "다른 창에서 검색";
+    container.style.backgroundColor = 'white';
+    container.style.width = '40px';
+    container.style.height = '40px';
+    container.style.cursor = 'pointer';
+
+    // 버튼 클릭 이벤트 추가
+    container.onclick = function () {
+      const searchURL = '/roadview_search'; // 검색 결과 페이지 URL
+      window.open(searchURL, 'roadview_search.html'); // 새 창 열기
+    };
+
+    return container;
+  },
+});
+
+// 첫 번째 버튼 추가
+const searchButton = new SearchButtonControl();
+map.addControl(searchButton);
+
+// 두 번째 버튼 추가
+const searchButton2 = new SearchButtonControl2();
+map.addControl(searchButton2);
+
+
+    // 추가 버튼 컨트롤 생성
+    const CustomButtonControl = L.Control.extend({
+      options: {
+        position: 'topright', // 버튼 위치
+      },
+      initialize: function (text, color, callback) {
+        this.text = text;
+        this.color = color;
+        this.callback = callback;
+      },
+      onAdd: function () {
+        // 버튼 생성
+        const container = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.innerHTML = this.text;
+        container.style.backgroundColor = this.color;
+        container.style.border = 'none';
+        container.style.width = '40px';
+        container.style.height = '40px';
+        container.style.cursor = 'pointer';
+
+        // 버튼 클릭 이벤트 추가
+        L.DomEvent.on(container, 'click', this.callback);
+
+        return container;
+      },
+    });
+
+    // 버튼 동작 정의
+    const actions = [
+      {
+        text: '<i class="bi bi-info-circle"></i>',
+        color: 'lightblue',
+        callback: () => alert('노인보호구역 정보를 확인하세요.'),
+      },
+      {
+        text: '<i class="bi bi-map"></i>',
+        color: 'lightgreen',
+        callback: () => map.setView([36.50972725, 127.2591418], 13),
+      },
+      {
+        text: '<i class="bi bi-geo-alt"></i>',
+        color: 'lightpink',
+        callback: () => map.locate({ setView: true, maxZoom: 15 }),
+      },
+      {
+        text: '<i class="bi bi-layers"></i>',
+        color: 'lightyellow',
+        callback: () => alert('지도 레이어를 선택하세요.'),
+      },
+      {
+        text: '<i class="bi bi-camera"></i>',
+        color: 'violet',
+        callback: () => alert('즐겨찾기를 추가하세요.'),
+      },
+      {
+        text: '<i class="bi bi-star"></i>',
+        color: 'lightpurple',
+        callback: () => alert('즐겨찾기를 추가하세요.'),
+      }
+    ];
+
+    // 버튼 추가
+    actions.forEach(action => {
+      map.addControl(new CustomButtonControl(action.text, action.color, action.callback));
+    });
+
+    const zones = [
+      { name: "밀마루복지마을", address: "세종특별자치시 보듬1로 16", population: 500, accidents: 3, lat: 36.50972725, lon: 127.2591418 },
+      { name: "전의복지회관", address: "세종특별자치시 전의면 동신길 10", population: 450, accidents: 2, lat: 36.67989279, lon: 127.2085989 },
+      { name: "송학2리 노인복지관", address: "세종특별자치시 장군면 의당전의로 712", population: 600, accidents: 4, lat: 36.53916873, lon: 127.1908696 },
+      { name: "세종경로당", address: "세종특별자치시 조치원읍 새내10길 96", population: 400, accidents: 1, lat: 36.60069182, lon: 127.3034413 },
+      { name: "세종노인복지센터", address: "세종특별자치시 조치원읍 장안길 97-4", population: 550, accidents: 5, lat: 36.59605391, lon: 127.3009235 },
+      { name: "대평시장", address: "세종특별자치시 금남면 대평시장1길 12", population: 300, accidents: 2, lat: 36.4665093, lon: 127.2820502 },
+      { name: "조치원전통시장", address: "세종특별자치시 조치원읍 조치원8길 42", population: 700, accidents: 6, lat: 36.599769, lon: 127.300644 },
+      { name: "도계리 경로당", address: "세종특별자치시 장군면 장기초교길 13", population: 350, accidents: 1, lat: 36.496969, lon: 127.207338 },
+      { name: "미곡1리미곡회관", address: "세종특별자치시 전동면 미륵당2길 5", population: 650, accidents: 3, lat: 36.669233, lon: 127.217044 },
+    ];
+
+    const markers = zones.map((zone, index) => {
+  const marker = L.marker([zone.lat, zone.lon], { icon: L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/854/854866.png',
+    iconSize: [30, 30],
+  }) }).addTo(map)
+    .bindPopup(`
+      <b>${zone.name}</b><br>
+      주소: ${zone.address}<br>
+      노인 인구: ${zone.population}명<br>
+      사고 건수: ${zone.accidents}건<br>
+      <a href="/roadview_search" target="_blank">로드뷰 보기</a>
+    `);
+
+  L.circle([zone.lat, zone.lon], {
+    color: 'blue',
+    fillColor: 'rgba(0, 0, 255, 0.3)',
+    fillOpacity: 0.2,
+    radius: 300,
+  }).addTo(map);
+
+  document.getElementById('zone-list').innerHTML += `
+    <div class="col">
+      <div class="card h-100 zone-card">
+        <div class="card-body">
+          <h5 class="card-title">${zone.name}</h5>
+          <p class="card-text">주소: ${zone.address}</p>
+        </div>
+      </div>
+    </div>
+  `;
+  return marker;
+});
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const query = document.getElementById('search').value.trim();
+      const result = zones.find(zone => zone.name.includes(query) || zone.address.includes(query));
+      if (result) {
+        map.setView([result.lat, result.lon], 14);
+        markers[zones.indexOf(result)].openPopup();
+      } else {
+        alert('검색 결과가 없습니다.');
+      }
+    });
+
+    document.getElementById('toggle-dark-mode').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      if (isDarkMode) {
+        map.removeLayer(darkTileLayer);
+        map.addLayer(lightTileLayer);
+      } else {
+        map.removeLayer(lightTileLayer);
+        map.addLayer(darkTileLayer);
+        markers.forEach(marker => {
+          marker.getElement().classList.add('glow-marker');
+        });
+      }
+      isDarkMode = !isDarkMode;
+    });
+
+    document.getElementById('toggleBtn').addEventListener('click', () => {
+      const sideBar = document.getElementById('sideBar');
+      const leftPosition = sideBar.style.left === '0px' ? '-250px' : '0px';
+      sideBar.style.left = leftPosition;
+    });
+
+    function scrollToSection(id) {
+      const section = document.getElementById(id);
+      if (section) section.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    
+  </script>
+</body>
+</html>

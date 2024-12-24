@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>로드뷰</title>
+    <style>
+    .map_wrap {overflow:hidden;height:1000px;}
+    .search_bar {margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+<div class="search_bar">
+    <input type="text" id="keyword" placeholder="주소 또는 건물명을 입력하세요" style="width: 300px;">
+    <button onclick="searchKeyword()">검색</button>
+</div>
+<div class="map_wrap">
+    <div id="mapWrapper" style="width:50%;height:1000px;float:left">
+        <div id="map" style="width:100%;height:100%"></div> <!-- 지도를 표시할 div -->
+    </div>
+    <div id="rvWrapper" style="width:50%;height:1000px;float:left">
+        <div id="roadview" style="width:100%;height:100%"></div> <!-- 로드뷰를 표시할 div -->
+    </div>
+</div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a9c49f4393b0d71166c3ddb8e129041a&libraries=services,places"></script>
+<script>
+var mapWrapper = document.getElementById('mapWrapper'); // 지도를 감싸고 있는 DIV태그
+var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+    mapCenter = new kakao.maps.LatLng(36.5097417500028, 127.259151638899), // 지도의 가운데 좌표
+    mapOption = {
+        center: mapCenter, // 지도의 중심좌표
+        level: 3 // 지도의 확대 레벨
+    };
+
+// 지도를 표시할 div와 지도 옵션으로 지도를 생성합니다
+var map = new kakao.maps.Map(mapContainer, mapOption);
+map.addOverlayMapTypeId(kakao.maps.MapTypeId.ROADVIEW); // 지도 위에 로드뷰 도로 올리기
+
+var rvContainer = document.getElementById('roadview'); // 로드뷰를 표시할 div
+var rv = new kakao.maps.Roadview(rvContainer); // 로드뷰 객체
+var rvClient = new kakao.maps.RoadviewClient(); // 좌표로부터 로드뷰 파노ID를 가져올 로드뷰 helper객체
+
+toggleRoadview(mapCenter);
+
+// 마커 이미지를 생성합니다.
+var markImage = new kakao.maps.MarkerImage(
+    'https://t1.daumcdn.net/localimg/localimages/07/2018/pc/roadview_minimap_wk_2018.png',
+    new kakao.maps.Size(26, 46),
+    {
+        spriteSize: new kakao.maps.Size(1666, 168),
+        spriteOrigin: new kakao.maps.Point(705, 114),
+        offset: new kakao.maps.Point(13, 46)
+    }
+);
+
+// 드래그가 가능한 마커를 생성합니다.
+var rvMarker = new kakao.maps.Marker({
+    image: markImage,
+    position: mapCenter,
+    draggable: true,
+    map: map
+});
+
+// 마커에 dragend 이벤트를 할당합니다
+kakao.maps.event.addListener(rvMarker, 'dragend', function(mouseEvent) {
+    var position = rvMarker.getPosition(); // 현재 마커가 놓인 자리의 좌표
+    toggleRoadview(position); // 로드뷰를 토글합니다
+});
+
+// 지도에 클릭 이벤트를 할당합니다
+kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+    var position = mouseEvent.latLng; 
+    rvMarker.setPosition(position);
+    toggleRoadview(position);
+});
+
+// 로드뷰 toggle 함수
+function toggleRoadview(position) {
+    rvClient.getNearestPanoId(position, 50, function(panoId) {
+        if (panoId === null) {
+            rvContainer.style.display = 'none';
+            mapWrapper.style.width = '100%';
+            map.relayout();
+        } else {
+            mapWrapper.style.width = '50%';
+            map.relayout();
+            rvContainer.style.display = 'block';
+            rv.setPanoId(panoId, position);
+            rv.relayout();
+        }
+    });
+}
+
+// 키워드 검색 기능 추가
+var places = new kakao.maps.services.Places();
+
+function searchKeyword() {
+    var keyword = document.getElementById('keyword').value;
+    if (!keyword.trim()) {
+        alert("주소 또는 건물명을 입력하세요.");
+        return;
+    }
+    places.keywordSearch(keyword, function(result, status) {
+        if (status === kakao.maps.services.Status.OK) {
+            // 검색 결과에서 첫 번째 장소 선택
+            var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+            map.setCenter(coords);
+            rvMarker.setPosition(coords);
+            toggleRoadview(coords);
+        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+            alert("검색 결과가 없습니다. 다른 키워드를 입력해 보세요.");
+        } else {
+            alert("검색 중 오류가 발생했습니다. 다시 시도해 주세요.");
+        }
+    });
+}
+</script>
+</body>
+</html>
